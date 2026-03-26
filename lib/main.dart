@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'virtual_plant_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -760,8 +761,12 @@ class _HomeScreenState extends State<HomeScreen> {
         babyGender: widget.babyGender,
         themeColor: _currentThemeColor,
       ),
-      BabyTrackerScreen(babyGender: widget.babyGender, themeColor: _currentThemeColor),
+      BabyTrackerScreen(
+        babyGender: widget.babyGender,
+        themeColor: _currentThemeColor,
+      ),
       SelfCareScreen(themeColor: _currentThemeColor),
+      const VirtualPlantPage(),
       SettingsScreen(
         motherName: widget.motherName,
         babyGender: widget.babyGender,
@@ -771,8 +776,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: _currentThemeColor == const Color(0xFFFFF4C1) 
-          ? const Color(0xFFFFFBF5) // Cream background for neutral
+      backgroundColor: _currentThemeColor == const Color(0xFFFFF4C1)
+          ? const Color(0xFFFFFBF5)
           : _currentThemeColor.withOpacity(0.1),
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
@@ -807,6 +812,10 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite),
               label: 'Self-Care',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_florist),
+              label: 'Plant',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),
