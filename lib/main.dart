@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'growth_tracker_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -751,6 +752,18 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentThemeColor = newColor;
     });
   }
+  Color _getBackgroundColor(Color themeColor) {
+  if (themeColor == const Color(0xFFAEC6FF)) {
+    // Boy Blue - Very light blue
+    return const Color(0xFFF0F4FF);
+  } else if (themeColor == const Color(0xFFFFB5E8)) {
+    // Girl Pink - Very light pink
+    return const Color(0xFFFFF5FA);
+  } else {
+    // Neutral Yellow - Warm cream
+    return const Color(0xFFFFFBF5);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -762,6 +775,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       BabyTrackerScreen(babyGender: widget.babyGender, themeColor: _currentThemeColor),
       SelfCareScreen(themeColor: _currentThemeColor),
+      GrowthTrackerScreen(themeColor: _currentThemeColor),
       SettingsScreen(
         motherName: widget.motherName,
         babyGender: widget.babyGender,
@@ -771,9 +785,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: _currentThemeColor == const Color(0xFFFFF4C1) 
-          ? const Color(0xFFFFFBF5) // Cream background for neutral
-          : _currentThemeColor.withOpacity(0.1),
+    backgroundColor: _getBackgroundColor(_currentThemeColor),
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -807,6 +819,10 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite),
               label: 'Self-Care',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.park),  // Plant icon!
+              label: 'Growth',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),
