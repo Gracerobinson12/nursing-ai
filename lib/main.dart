@@ -1461,8 +1461,13 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.of(context).padding.bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1596,7 +1601,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
 
-            const Spacer(),
+            const SizedBox(height: 10),
 
             // Logout Button
             SizedBox(
