@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'growth_tracker_screen.dart';
+import 'repositories/app_repository.dart';
+import 'models/settings_model.dart';
+import 'models/goal_model.dart';
+import 'models/baby_activity_model.dart';
+import 'models/self_care_reminder_model.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,16 +19,43 @@ class MyApp extends StatelessWidget {
       title: 'Postpartum Care',
       theme: ThemeData(
         primarySwatch: Colors.purple,
-        scaffoldBackgroundColor: const Color(0xFFFFFBF5), // Cream background
+        scaffoldBackgroundColor: const Color(0xFFFFFBF5),
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const WelcomeScreen(),
+      // FutureBuilder checks DB for existing settings on every launch.
+      // If settings exist → skip onboarding and go straight to HomeScreen.
+      // If not           → first launch, show WelcomeScreen.
+      home: FutureBuilder<SettingsModel?>(
+        future: AppRepository().getSettings(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final settings = snapshot.data;
+
+          if (settings == null) {
+            return const WelcomeScreen();
+          }
+
+          return HomeScreen(
+            motherName: settings.motherName,
+            babyGender: settings.babyGender,
+            dueDate: DateTime.parse(settings.dueDate),
+            themeColor: Color(settings.themeColor),
+          );
+        },
+      ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Welcome Screen
+// ─────────────────────────────────────────────────────────────────────────────
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({Key? key}) : super(key: key);
 
@@ -48,8 +80,7 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
-                
-                // App Icon/Logo
+
                 Container(
                   padding: const EdgeInsets.all(30),
                   decoration: BoxDecoration(
@@ -69,9 +100,9 @@ class WelcomeScreen extends StatelessWidget {
                     color: Color(0xFF9C88D9),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 const Text(
                   'Welcome, Mama',
                   style: TextStyle(
@@ -80,9 +111,9 @@ class WelcomeScreen extends StatelessWidget {
                     color: Color(0xFF9C88D9),
                   ),
                 ),
-                
+
                 const SizedBox(height: 15),
-                
+
                 Text(
                   'Your postpartum journey companion',
                   textAlign: TextAlign.center,
@@ -91,19 +122,17 @@ class WelcomeScreen extends StatelessWidget {
                     color: Colors.grey[700],
                   ),
                 ),
-                
+
                 const SizedBox(height: 50),
-                
-                // Feature highlights
+
                 _buildFeature(Icons.child_care, 'Track baby\'s feeding, sleep & diapers'),
                 const SizedBox(height: 15),
                 _buildFeature(Icons.favorite, 'Monitor your mood & self-care'),
                 const SizedBox(height: 15),
                 _buildFeature(Icons.notifications, 'Gentle reminders for your well-being'),
-                
+
                 const Spacer(),
-                
-                // Get Started Button
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -133,7 +162,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -152,20 +181,13 @@ class WelcomeScreen extends StatelessWidget {
             color: Colors.white.withOpacity(0.5),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF9C88D9),
-            size: 24,
-          ),
+          child: Icon(icon, color: const Color(0xFF9C88D9), size: 24),
         ),
         const SizedBox(width: 15),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[800],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[800]),
           ),
         ),
       ],
@@ -173,7 +195,9 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-// Setup Screen (Updated with gender and color selection)
+// ─────────────────────────────────────────────────────────────────────────────
+// Setup Screen
+// ─────────────────────────────────────────────────────────────────────────────
 class SetupScreen extends StatefulWidget {
   const SetupScreen({Key? key}) : super(key: key);
 
@@ -220,21 +244,14 @@ class _SetupScreenState extends State<SetupScreen> {
             const SizedBox(height: 10),
             Text(
               'Help us create your perfect experience',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
-            
+
             const SizedBox(height: 40),
-            
-            // Mother's Name
+
             const Text(
               'Your Name',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -250,43 +267,29 @@ class _SetupScreenState extends State<SetupScreen> {
                 prefixIcon: const Icon(Icons.person, color: Color(0xFF9C88D9)),
               ),
             ),
-            
+
             const SizedBox(height: 25),
-            
-            // Baby's Gender
+
             const Text(
               'Baby\'s Gender',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: _buildGenderOption('Boy', Icons.male, const Color(0xFFAEC6FF)),
-                ),
+                Expanded(child: _buildGenderOption('Boy', Icons.male, const Color(0xFFAEC6FF))),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: _buildGenderOption('Girl', Icons.female, const Color(0xFFFFB5E8)),
-                ),
+                Expanded(child: _buildGenderOption('Girl', Icons.female, const Color(0xFFFFB5E8))),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: _buildGenderOption('Neutral', Icons.child_care, const Color(0xFFFFF4C1)),
-                ),
+                Expanded(child: _buildGenderOption('Neutral', Icons.child_care, const Color(0xFFFFF4C1))),
               ],
             ),
-            
+
             const SizedBox(height: 25),
-            
-            // Due Date
+
             const Text(
               'Due Date / Birth Date',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             GestureDetector(
@@ -308,9 +311,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   },
                 );
                 if (picked != null) {
-                  setState(() {
-                    _dueDate = picked;
-                  });
+                  setState(() => _dueDate = picked);
                 }
               },
               child: Container(
@@ -336,26 +337,18 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 25),
-            
-            // Color Theme Selection
+
             const Text(
               'Choose Your Color Theme',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             ..._colorOptions.entries.map((entry) {
               final isSelected = _selectedColor == entry.value;
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedColor = entry.value;
-                  });
-                },
+                onTap: () => setState(() => _selectedColor = entry.value),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(15),
@@ -386,17 +379,15 @@ class _SetupScreenState extends State<SetupScreen> {
                         ),
                       ),
                       const Spacer(),
-                      if (isSelected)
-                        Icon(Icons.check_circle, color: entry.value),
+                      if (isSelected) Icon(Icons.check_circle, color: entry.value),
                     ],
                   ),
                 ),
               );
             }).toList(),
-            
+
             const SizedBox(height: 40),
-            
-            // Continue Button
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -413,7 +404,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     );
                     return;
                   }
-                  
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -437,10 +428,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
                 child: const Text(
                   'Continue',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -453,11 +441,7 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget _buildGenderOption(String label, IconData icon, Color color) {
     final isSelected = _selectedGender == label;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedGender = label;
-        });
-      },
+      onTap: () => setState(() => _selectedGender = label),
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -486,7 +470,9 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 }
 
-// Privacy & Terms Screen
+// ─────────────────────────────────────────────────────────────────────────────
+// Privacy Screen
+// ─────────────────────────────────────────────────────────────────────────────
 class PrivacyScreen extends StatefulWidget {
   final String motherName;
   final String babyGender;
@@ -535,14 +521,11 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             const SizedBox(height: 10),
             Text(
               'Your data, your control',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -589,16 +572,11 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
-            // Agreement Checkbox
+
             GestureDetector(
-              onTap: () {
-                setState(() {
-                  _agreedToTerms = !_agreedToTerms;
-                });
-              },
+              onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
               child: Row(
                 children: [
                   Container(
@@ -620,24 +598,30 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                   Expanded(
                     child: Text(
                       'I agree to the privacy policy and terms of use',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[800],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
-            // Start Button
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                // ── ASYNC: saves settings to SQLite before navigating ──────
                 onPressed: _agreedToTerms
-                    ? () {
+                    ? () async {
+                        await AppRepository().saveSettings(
+                          SettingsModel(
+                            motherName: widget.motherName,
+                            babyGender: widget.babyGender,
+                            dueDate: widget.dueDate.toIso8601String(),
+                            themeColor: widget.themeColor.value,
+                          ),
+                        );
+                        if (!mounted) return;
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
@@ -664,10 +648,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 ),
                 child: const Text(
                   'Start My Journey',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -694,22 +675,15 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
-              ),
+              Text(description,
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      height: 1.5)),
             ],
           ),
         ),
@@ -718,7 +692,9 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   }
 }
 
-// Home Screen (Updated with personalization and theme color)
+// ─────────────────────────────────────────────────────────────────────────────
+// Home Screen
+// ─────────────────────────────────────────────────────────────────────────────
 class HomeScreen extends StatefulWidget {
   final String motherName;
   final String babyGender;
@@ -748,32 +724,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _updateThemeColor(Color newColor) {
-    setState(() {
-      _currentThemeColor = newColor;
-    });
+    setState(() => _currentThemeColor = newColor);
   }
+
   Color _getBackgroundColor(Color themeColor) {
-  if (themeColor == const Color(0xFFAEC6FF)) {
-    // Boy Blue - Very light blue
-    return const Color(0xFFF0F4FF);
-  } else if (themeColor == const Color(0xFFFFB5E8)) {
-    // Girl Pink - Very light pink
-    return const Color(0xFFFFF5FA);
-  } else {
-    // Neutral Yellow - Warm cream
+    if (themeColor == const Color(0xFFAEC6FF)) return const Color(0xFFF0F4FF);
+    if (themeColor == const Color(0xFFFFB5E8)) return const Color(0xFFFFF5FA);
     return const Color(0xFFFFFBF5);
   }
-}
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       DashboardScreen(
         motherName: widget.motherName,
         babyGender: widget.babyGender,
         themeColor: _currentThemeColor,
       ),
-      BabyTrackerScreen(babyGender: widget.babyGender, themeColor: _currentThemeColor),
+      BabyTrackerScreen(
+        babyGender: widget.babyGender,
+        themeColor: _currentThemeColor,
+      ),
       SelfCareScreen(themeColor: _currentThemeColor),
       GrowthTrackerScreen(themeColor: _currentThemeColor),
       SettingsScreen(
@@ -785,8 +756,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-    backgroundColor: _getBackgroundColor(_currentThemeColor),
-      body: _screens[_selectedIndex],
+      backgroundColor: _getBackgroundColor(_currentThemeColor),
+      body: screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -799,35 +770,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
+          onTap: (index) => setState(() => _selectedIndex = index),
           selectedItemColor: _currentThemeColor,
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.child_care),
-              label: 'Baby',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: 'Self-Care',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.park),  // Plant icon!
-              label: 'Growth',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.child_care), label: 'Baby'),
+            BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Self-Care'),
+            BottomNavigationBarItem(icon: Icon(Icons.park), label: 'Growth'),
+            BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
           ],
         ),
       ),
@@ -835,8 +787,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Dashboard Screen (Updated with personalization and theme color)
-class DashboardScreen extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// Dashboard Screen  (StatefulWidget — loads goals & last activity from DB)
+// ─────────────────────────────────────────────────────────────────────────────
+class DashboardScreen extends StatefulWidget {
   final String motherName;
   final String babyGender;
   final Color themeColor;
@@ -849,6 +803,62 @@ class DashboardScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  List<GoalModel> _goals = [];
+  BabyActivityModel? _lastFeeding;
+  BabyActivityModel? _lastSleep;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  // ── ASYNC: loads today's goals and last feeding/sleep from SQLite ─────────
+  Future<void> _loadData() async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    var goals = await AppRepository().getGoalsForDate(today);
+
+    // Seed default goals on first load of the day
+    if (goals.isEmpty) {
+      final defaults = [
+        'Drink 8 glasses of water',
+        'Take your vitamins',
+        'Rest for 30 minutes',
+        'Eat a healthy meal',
+      ];
+      for (final title in defaults) {
+        await AppRepository().insertGoal(
+          GoalModel(title: title, date: today),
+        );
+      }
+      goals = await AppRepository().getGoalsForDate(today);
+    }
+
+    final feeding = await AppRepository().getLastActivityByType('Feeding');
+    final sleep   = await AppRepository().getLastActivityByType('Sleep');
+
+    if (!mounted) return;
+    setState(() {
+      _goals       = goals;
+      _lastFeeding = feeding;
+      _lastSleep   = sleep;
+    });
+  }
+
+  /// Converts a stored ISO-8601 timestamp into a human-friendly "X ago" string.
+  String _timeAgo(String isoString) {
+    final logged = DateTime.parse(isoString);
+    final diff   = DateTime.now().difference(logged);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24)   return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
@@ -857,41 +867,42 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hello, $motherName 💕',
+              'Hello, ${widget.motherName} 💕',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: themeColor,
+                color: widget.themeColor,
               ),
             ),
             const SizedBox(height: 10),
             Text(
-              'You\'re doing amazing with your baby $babyGender!',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
+              'You\'re doing amazing with your baby ${widget.babyGender}!',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
             const SizedBox(height: 30),
 
-            // Quick Stats
+            // Stat cards — show real last-activity times from DB
             Row(
               children: [
                 Expanded(
                   child: _buildStatCard(
                     'Last Feeding',
-                    '2h ago',
+                    _lastFeeding != null
+                        ? _timeAgo(_lastFeeding!.loggedAt)
+                        : 'None yet',
                     Icons.restaurant,
-                    themeColor,
+                    widget.themeColor,
                   ),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: _buildStatCard(
                     'Last Sleep',
-                    '3h ago',
+                    _lastSleep != null
+                        ? _timeAgo(_lastSleep!.loggedAt)
+                        : 'None yet',
                     Icons.bedtime,
-                    themeColor.withOpacity(0.7),
+                    widget.themeColor.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -900,39 +911,38 @@ class DashboardScreen extends StatelessWidget {
 
             const Text(
               'Today\'s Goals',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 15),
 
-            // Self-care checklist
-            _buildChecklistItem('Drink 8 glasses of water', true, themeColor),
-            _buildChecklistItem('Take your vitamins', true, themeColor),
-            _buildChecklistItem('Rest for 30 minutes', false, themeColor),
-            _buildChecklistItem('Eat a healthy meal', false, themeColor),
+            // Goals driven by DB — tapping toggles completion
+            ..._goals.map((goal) => GestureDetector(
+              onTap: () async {
+                // ── ASYNC: persists toggle to SQLite then refreshes UI ─────
+                await AppRepository().toggleGoal(goal.id!, !goal.isComplete);
+                _loadData();
+              },
+              child: _buildChecklistItem(
+                  goal.title, goal.isComplete, widget.themeColor),
+            )),
 
             const Spacer(),
 
-            // Encouragement card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: themeColor.withOpacity(0.3),
+                color: widget.themeColor.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.spa, color: themeColor, size: 30),
+                  Icon(Icons.spa, color: widget.themeColor, size: 30),
                   const SizedBox(width: 15),
                   const Expanded(
                     child: Text(
                       'Remember: Your well-being matters too',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                          fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -944,7 +954,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -962,28 +973,20 @@ class DashboardScreen extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 35),
           const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 5),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
       ),
     );
   }
 
-  Widget _buildChecklistItem(String text, bool checked, Color themeColor) {
+  Widget _buildChecklistItem(
+      String text, bool checked, Color themeColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -1007,7 +1010,9 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// Baby Tracker Screen (Updated with gender and theme color)
+// ─────────────────────────────────────────────────────────────────────────────
+// Baby Tracker Screen  (loads & saves activities via SQLite)
+// ─────────────────────────────────────────────────────────────────────────────
 class BabyTrackerScreen extends StatefulWidget {
   final String babyGender;
   final Color themeColor;
@@ -1023,16 +1028,56 @@ class BabyTrackerScreen extends StatefulWidget {
 }
 
 class _BabyTrackerScreenState extends State<BabyTrackerScreen> {
-  List<Map<String, dynamic>> activities = [];
+  List<BabyActivityModel> _activities = [];
 
   @override
   void initState() {
     super.initState();
-    activities = [
-      {'type': 'Feeding', 'time': '2 hours ago', 'icon': Icons.restaurant, 'color': widget.themeColor},
-      {'type': 'Diaper', 'time': '1 hour ago', 'icon': Icons.child_care, 'color': widget.themeColor.withOpacity(0.7)},
-      {'type': 'Sleep', 'time': '3 hours ago', 'icon': Icons.bedtime, 'color': widget.themeColor.withOpacity(0.5)},
-    ];
+    _loadActivities();
+  }
+
+  // ── ASYNC: fetches the 20 most recent activities from SQLite ──────────────
+  Future<void> _loadActivities() async {
+    final data = await AppRepository().getRecentActivities(limit: 20);
+    if (!mounted) return;
+    setState(() => _activities = data);
+  }
+
+  // ── ASYNC: inserts a new activity row then refreshes the list ─────────────
+  Future<void> _addActivity(String type) async {
+    await AppRepository().logBabyActivity(
+      BabyActivityModel(
+        type: type,
+        loggedAt: DateTime.now().toIso8601String(),
+      ),
+    );
+    await _loadActivities();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$type logged!'),
+        backgroundColor: widget.themeColor,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Converts a stored ISO-8601 timestamp into a human-friendly "X ago" string.
+  String _timeAgo(String isoString) {
+    final logged = DateTime.parse(isoString);
+    final diff   = DateTime.now().difference(logged);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24)   return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'Feeding': return Icons.restaurant;
+      case 'Sleep':   return Icons.bedtime;
+      default:        return Icons.child_care; // Diaper
+    }
   }
 
   @override
@@ -1054,35 +1099,22 @@ class _BabyTrackerScreenState extends State<BabyTrackerScreen> {
             const SizedBox(height: 10),
             Text(
               'Tracking your ${widget.babyGender.toLowerCase()}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 30),
 
-            // Quick Action Buttons
+            // Quick-log buttons — each calls _addActivity (async)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildActionButton(
-                  'Feed',
-                  Icons.restaurant,
-                  widget.themeColor,
-                  () => _addActivity('Feeding', Icons.restaurant),
-                ),
-                _buildActionButton(
-                  'Diaper',
-                  Icons.child_care,
-                  widget.themeColor.withOpacity(0.7),
-                  () => _addActivity('Diaper', Icons.child_care),
-                ),
-                _buildActionButton(
-                  'Sleep',
-                  Icons.bedtime,
-                  widget.themeColor.withOpacity(0.5),
-                  () => _addActivity('Sleep', Icons.bedtime),
-                ),
+                _buildActionButton('Feed',   Icons.restaurant, widget.themeColor,
+                    () => _addActivity('Feeding')),
+                _buildActionButton('Diaper', Icons.child_care,
+                    widget.themeColor.withOpacity(0.7),
+                    () => _addActivity('Diaper')),
+                _buildActionButton('Sleep',  Icons.bedtime,
+                    widget.themeColor.withOpacity(0.5),
+                    () => _addActivity('Sleep')),
               ],
             ),
 
@@ -1090,75 +1122,77 @@ class _BabyTrackerScreenState extends State<BabyTrackerScreen> {
 
             const Text(
               'Recent Activity',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 15),
 
-            // Activity List
+            // Activity list — populated from DB
             Expanded(
-              child: ListView.builder(
-                itemCount: activities.length,
-                itemBuilder: (context, index) {
-                  final activity = activities[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (activity['color'] as Color).withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
+              child: _activities.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No activities logged yet.\nTap a button above to start!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.grey[500], fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _activities.length,
+                      itemBuilder: (context, index) {
+                        final activity = _activities[index];
+                        final color = widget.themeColor
+                            .withOpacity(1 - (index * 0.05).clamp(0.0, 0.5));
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 15),
+                          padding: const EdgeInsets.all(15),
                           decoration: BoxDecoration(
-                            color: (activity['color'] as Color).withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                          child: Icon(
-                            activity['icon'] as IconData,
-                            color: activity['color'] as Color,
-                            size: 25,
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                activity['type'] as String,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  _iconForType(activity.type),
+                                  color: color,
+                                  size: 25,
                                 ),
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                activity['time'] as String,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
+                              const SizedBox(width: 15),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(activity.type,
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 3),
+                                    Text(_timeAgo(activity.loggedAt),
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600])),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -1166,7 +1200,8 @@ class _BabyTrackerScreenState extends State<BabyTrackerScreen> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+      String label, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1179,40 +1214,20 @@ class _BabyTrackerScreenState extends State<BabyTrackerScreen> {
           children: [
             Icon(icon, color: color, size: 35),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800])),
           ],
         ),
       ),
     );
   }
-
-  void _addActivity(String type, IconData icon) {
-    setState(() {
-      activities.insert(0, {
-        'type': type,
-        'time': 'Just now',
-        'icon': icon,
-        'color': widget.themeColor,
-      });
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$type logged!'),
-        backgroundColor: widget.themeColor,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 }
 
-// Self-Care Screen (Updated with theme color)
+// ─────────────────────────────────────────────────────────────────────────────
+// Self-Care Screen  (loads reminders from DB, logs mood & completions)
+// ─────────────────────────────────────────────────────────────────────────────
 class SelfCareScreen extends StatefulWidget {
   final Color themeColor;
 
@@ -1224,13 +1239,27 @@ class SelfCareScreen extends StatefulWidget {
 
 class _SelfCareScreenState extends State<SelfCareScreen> {
   String selectedMood = 'Good';
-  
+  List<SelfCareReminderModel> _reminders = [];
+
   final List<Map<String, dynamic>> moods = [
     {'emoji': '😊', 'label': 'Good'},
     {'emoji': '😌', 'label': 'Calm'},
     {'emoji': '😫', 'label': 'Tired'},
     {'emoji': '😢', 'label': 'Sad'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReminders();
+  }
+
+  // ── ASYNC: fetches reminders seeded by DatabaseHelper from SQLite ─────────
+  Future<void> _loadReminders() async {
+    final data = await AppRepository().getReminders();
+    if (!mounted) return;
+    setState(() => _reminders = data);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1251,23 +1280,20 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
             const SizedBox(height: 10),
             Text(
               'How are you feeling today?',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 30),
 
-            // Mood Selector
+            // Mood selector — tapping persists to DB via logMood()
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: moods.map((mood) {
                 final isSelected = selectedMood == mood['label'];
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedMood = mood['label'] as String;
-                    });
+                  onTap: () async {
+                    // ── ASYNC: saves mood log to SQLite ────────────────────
+                    setState(() => selectedMood = mood['label'] as String);
+                    await AppRepository().logMood(mood['label'] as String);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(15),
@@ -1285,16 +1311,16 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          mood['emoji'] as String,
-                          style: const TextStyle(fontSize: 35),
-                        ),
+                        Text(mood['emoji'] as String,
+                            style: const TextStyle(fontSize: 35)),
                         const SizedBox(height: 5),
                         Text(
                           mood['label'] as String,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -1308,52 +1334,41 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
 
             const Text(
               'Daily Reminders',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 15),
 
-            // Reminders List
+            // Reminders from DB — bell icon logs a completion record
             Expanded(
               child: ListView(
-                children: [
-                  _buildReminderCard(
-                    'Hydration',
-                    'Drink a glass of water',
-                    Icons.local_drink,
-                    widget.themeColor,
-                  ),
-                  _buildReminderCard(
-                    'Nutrition',
-                    'Have a healthy snack',
-                    Icons.restaurant_menu,
-                    widget.themeColor.withOpacity(0.8),
-                  ),
-                  _buildReminderCard(
-                    'Rest',
-                    'Take a 15-minute break',
-                    Icons.chair,
-                    widget.themeColor.withOpacity(0.6),
-                  ),
-                  _buildReminderCard(
-                    'Movement',
-                    'Gentle stretching',
-                    Icons.self_improvement,
-                    widget.themeColor.withOpacity(0.4),
-                  ),
-                  _buildReminderCard(
-                    'Connection',
-                    'Call a friend or family',
-                    Icons.phone,
-                    widget.themeColor.withOpacity(0.5),
-                  ),
-                ],
+                children: _reminders.map((reminder) {
+                  final color = widget.themeColor.withOpacity(
+                      1 - (_reminders.indexOf(reminder) * 0.1)
+                          .clamp(0.0, 0.6));
+                  return _buildReminderCard(
+                    reminder.title,
+                    reminder.description ?? '',
+                    IconData(reminder.iconCode,
+                        fontFamily: 'MaterialIcons'),
+                    color,
+                    onNotificationTap: () async {
+                      // ── ASYNC: logs reminder completion to SQLite ───────
+                      await AppRepository()
+                          .markReminderComplete(reminder.id!);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${reminder.title} logged!'),
+                          backgroundColor: widget.themeColor,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
               ),
             ),
 
-            // Affirmation
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1374,10 +1389,7 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
                   const Text(
                     '"I am strong, capable, and deserving of rest"',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
@@ -1388,7 +1400,13 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
     );
   }
 
-  Widget _buildReminderCard(String title, String description, IconData icon, Color color) {
+  Widget _buildReminderCard(
+    String title,
+    String description,
+    IconData icon,
+    Color color, {
+    VoidCallback? onNotificationTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(20),
@@ -1418,32 +1436,31 @@ class _SelfCareScreenState extends State<SelfCareScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 3),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
+                Text(description,
+                    style: TextStyle(
+                        fontSize: 14, color: Colors.grey[600])),
               ],
             ),
           ),
-          Icon(Icons.notifications_outlined, color: Colors.grey[400]),
+          // Tapping the bell icon logs this reminder as complete in SQLite
+          GestureDetector(
+            onTap: onNotificationTap,
+            child: Icon(Icons.notifications_outlined,
+                color: Colors.grey[400]),
+          ),
         ],
       ),
     );
   }
 }
 
-// Settings Screen with Theme Changer
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings Screen  (persists theme color changes to SQLite)
+// ─────────────────────────────────────────────────────────────────────────────
 class SettingsScreen extends StatelessWidget {
   final String motherName;
   final String babyGender;
@@ -1477,14 +1494,11 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'Manage your account and preferences',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 30),
 
-            // Profile Info Card
+            // Profile card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1501,51 +1515,36 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Profile',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Icon(Icons.person, color: themeColor),
-                      const SizedBox(width: 10),
-                      Text(
-                        motherName,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
+                  Row(children: [
+                    Icon(Icons.person, color: themeColor),
+                    const SizedBox(width: 10),
+                    Text(motherName,
+                        style: const TextStyle(fontSize: 16)),
+                  ]),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Icon(Icons.child_care, color: themeColor),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Baby Gender: $babyGender',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
+                  Row(children: [
+                    Icon(Icons.child_care, color: themeColor),
+                    const SizedBox(width: 10),
+                    Text('Baby Gender: $babyGender',
+                        style: const TextStyle(fontSize: 16)),
+                  ]),
                 ],
               ),
             ),
 
             const SizedBox(height: 20),
 
-            // Change Theme Color Option
             _buildSettingOption(
               context,
               'Change Theme Color',
               'Choose your preferred color theme',
               Icons.palette_outlined,
               themeColor,
-              () {
-                _showColorPicker(context);
-              },
+              () => _showColorPicker(context),
             ),
 
             _buildSettingOption(
@@ -1554,14 +1553,12 @@ class SettingsScreen extends StatelessWidget {
               'Manage reminder settings',
               Icons.notifications_outlined,
               themeColor,
-              () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Notification settings coming soon!'),
-                    backgroundColor: themeColor,
-                  ),
-                );
-              },
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Notification settings coming soon!'),
+                  backgroundColor: themeColor,
+                ),
+              ),
             ),
 
             _buildSettingOption(
@@ -1570,14 +1567,12 @@ class SettingsScreen extends StatelessWidget {
               'View privacy policy',
               Icons.lock_outline,
               themeColor,
-              () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Privacy policy coming soon!'),
-                    backgroundColor: themeColor,
-                  ),
-                );
-              },
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Privacy policy coming soon!'),
+                  backgroundColor: themeColor,
+                ),
+              ),
             ),
 
             _buildSettingOption(
@@ -1586,19 +1581,16 @@ class SettingsScreen extends StatelessWidget {
               'Get help and contact us',
               Icons.help_outline,
               themeColor,
-              () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Support coming soon!'),
-                    backgroundColor: themeColor,
-                  ),
-                );
-              },
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Support coming soon!'),
+                  backgroundColor: themeColor,
+                ),
+              ),
             ),
 
             const Spacer(),
 
-            // Logout Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -1608,24 +1600,21 @@ class SettingsScreen extends StatelessWidget {
                     builder: (BuildContext context) {
                       return AlertDialog(
                         title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
+                        content:
+                            const Text('Are you sure you want to logout?'),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                            borderRadius: BorderRadius.circular(20)),
                         actions: [
                           TextButton(
-                            onPressed: () {
-                              Navigator.pop(context); // Close dialog
-                            },
+                            onPressed: () => Navigator.pop(context),
                             child: const Text('Cancel'),
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              // Clear navigation stack and go to welcome
                               Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
-                                  builder: (context) => const WelcomeScreen(),
-                                ),
+                                    builder: (context) =>
+                                        const WelcomeScreen()),
                                 (route) => false,
                               );
                             },
@@ -1641,20 +1630,15 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text(
-                  'Logout',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                label: const Text('Logout',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
+                      borderRadius: BorderRadius.circular(30)),
                   elevation: 5,
                 ),
               ),
@@ -1678,15 +1662,28 @@ class SettingsScreen extends StatelessWidget {
         return AlertDialog(
           title: const Text('Choose Theme Color'),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+              borderRadius: BorderRadius.circular(20)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: colorOptions.entries.map((entry) {
               final isSelected = themeColor == entry.value;
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  // ── ASYNC: updates saved theme color in SQLite ──────────
                   onThemeColorChanged(entry.value);
+                  final current = await AppRepository().getSettings();
+                  if (current != null) {
+                    await AppRepository().saveSettings(
+                      SettingsModel(
+                        id: current.id,
+                        motherName: current.motherName,
+                        babyGender: current.babyGender,
+                        dueDate: current.dueDate,
+                        themeColor: entry.value.value,
+                      ),
+                    );
+                  }
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1703,7 +1700,9 @@ class SettingsScreen extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(
-                      color: isSelected ? entry.value : Colors.grey.shade300,
+                      color: isSelected
+                          ? entry.value
+                          : Colors.grey.shade300,
                       width: isSelected ? 3 : 1,
                     ),
                   ),
@@ -1722,7 +1721,9 @@ class SettingsScreen extends StatelessWidget {
                         entry.key,
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                       const Spacer(),
@@ -1778,25 +1779,18 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 14, color: Colors.grey[600])),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 18),
+            Icon(Icons.arrow_forward_ios,
+                color: Colors.grey[400], size: 18),
           ],
         ),
       ),
