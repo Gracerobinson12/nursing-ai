@@ -1,10 +1,11 @@
-# post_app
 
-A new Flutter project.
+This is the Postpartum Care app project. Although the team name given to use is called "AI College of Nursing", this app does not currently include integration of AI. It is an app that allows postpartum moms to track their new baby's activities and receive helpful information. The "database" branch is our current draft for persistence storage. The UI is relatively complete. 
+We chose to use Flutter to allow cross-platform development (Android and iOS) on any OS (Windows, Mac). 
+Personally, I've had issues running the project on Linux. I recommend using Windows or Mac. 
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+
+## Getting Started with Flutter
 
 A few resources to get you started if this is your first Flutter project:
 
