@@ -1,0 +1,70 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+
+import 'themes/app_themes.dart';
+import 'auth_service.dart';
+import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+
+AppTheme _themeForProfile(SessionProfile? profile) {
+  if (profile == null) return OceanTheme;
+
+  final savedColor = Color(profile.themeColor).value;
+  if (savedColor == SunriseTheme.primary.value) return SunriseTheme;
+  if (savedColor == DesertTheme.primary.value) return DesertTheme;
+  return OceanTheme;
+}
+const _previewHomeEnabled = bool.fromEnvironment('PREVIEW_HOME');
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final Future<StoredSession?> _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = kDebugMode && _previewHomeEnabled
+        ? Future.value(null)
+        : AuthService().restoreSession();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kDebugMode && _previewHomeEnabled) {
+      return HomeScreen(
+        motherName: 'Taylor',
+        babyGender: 'Neutral',
+        dueDate: DateTime.now(),
+        theme: OceanTheme,
+      );
+    }
+
+    return FutureBuilder<StoredSession?>(
+      future: _session,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final session = snapshot.data;
+        if (session == null) return const LoginScreen();
+
+        final profile = session.profile;
+        return HomeScreen(
+          motherName: profile?.motherName ?? session.response.user.username,
+          babyGender: profile?.babyGender ?? 'Neutral',
+          dueDate: profile?.dueDate ?? DateTime.now(),
+          theme: _themeForProfile(profile),
+        );
+      },
+    );
+  }
+}

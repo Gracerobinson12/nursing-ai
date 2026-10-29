@@ -11,6 +11,12 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+backend/.venv*/
 
 # IntelliJ related
 *.iml
@@ -43,3 +49,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# for joshua ollama development
+.continue/*
